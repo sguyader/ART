@@ -1307,9 +1307,14 @@ bool Mask::load(int ppVersion, const KeyFile &keyfile,
         externalMask.filename = filenameFromUri(externalMask.filename, basedir);
         ret = true;
     }
-    ret |= assignFromKeyfile(keyfile, group_name,
-                             prefix + "ExternalMaskFeather" + suffix,
-                             externalMask.feather);
+    if (assignFromKeyfile(keyfile, group_name,
+                          prefix + "ExternalMaskFeather" + suffix,
+                          externalMask.feather)) {
+        if (ppVersion < 1045) {
+            externalMask.feather = std::min(externalMask.feather * 10, 100.0);
+        }
+        ret = true;
+    }
 
     return ret;
 }
@@ -2730,7 +2735,8 @@ std::vector<std::string> MetaDataParams::basicExifKeys = {
     "Exif.Photo.Flash",
     "Exif.Photo.DateTimeOriginal",
     "Exif.Image.XResolution",
-    "Exif.Image.YResolution"};
+    "Exif.Image.YResolution"
+};
 
 MetaDataParams::MetaDataParams()
     : mode(MetaDataParams::EDIT), exifKeys{}, exif{}, iptc{}, notes("")

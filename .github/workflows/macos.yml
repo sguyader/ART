@@ -72,14 +72,14 @@ jobs:
       - if: ${{ matrix.os == 'macos-15-intel' }}
         name: Install MacPorts (x64)
         run: |          
-          wget https://github.com/macports/macports-base/releases/download/v2.11.6/MacPorts-2.11.6-15-Sequoia.pkg
-          sudo installer -pkg MacPorts-2.11.6-15-Sequoia.pkg -target /
+          wget https://github.com/macports/macports-base/releases/download/v2.12.5/MacPorts-2.12.5-15-Sequoia.pkg
+          sudo installer -pkg MacPorts-2.12.5-15-Sequoia.pkg -target /
 
       - if: ${{ matrix.os == 'macos-14' }}
         name: Install MacPorts (arm64)
         run: |          
-          wget https://github.com/macports/macports-base/releases/download/v2.11.6/MacPorts-2.11.6-14-Sonoma.pkg
-          sudo installer -pkg MacPorts-2.11.6-14-Sonoma.pkg -target /
+          wget https://github.com/macports/macports-base/releases/download/v2.12.5/MacPorts-2.12.5-14-Sonoma.pkg
+          sudo installer -pkg MacPorts-2.12.5-14-Sonoma.pkg -target /
           export
           PATH=/opt/local/libexec/gnubin:/opt/local/bin:/opt/local/sbin:$PATH
           
@@ -95,17 +95,55 @@ jobs:
           sudo port install glib2 +quartz
           sudo port install gtkmm3 +quartz
           sudo port install libomp
-          sudo port install clang-17
+          sudo port install clang-21
           sudo port install librsvg-devel
           sudo port install lensfun
           sudo port install exiv2
-          sudo port install fftw-3-single +openmp
           sudo port install openexr
-          sudo port install lcms2
           sudo port install adwaita-icon-theme
           sudo port install meson
           sudo port install dbus
-          sudo port install simde
+
+      - name: Install fftw
+        run: |
+          export PATH=/opt/local/libexec/gnubin:/opt/local/bin:/opt/local/sbin:$PATH
+          INSTDIR=/opt/art-deps
+          wget https://www.fftw.org/fftw-3.3.11.tar.gz
+          tar xzf fftw-3.3.11.tar.gz
+          cd fftw-3.3.11
+          mkdir build
+          cd build
+          /opt/local/bin/cmake \
+            -DCMAKE_C_COMPILER=/opt/local/bin/clang-mp-21 \
+            -DCMAKE_CXX_COMPILER=/opt/local/bin/clang++-mp-21 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=$INSTDIR \
+            -DENABLE_FLOAT=1 \
+            -DENABLE_OPENMP=0 \
+            -DENABLE_THREADS=1 \
+            -DWITH_COMBINED_THREADS=1 \
+            -DBUILD_TESTS=0 \
+            -DENABLE_SSE=1 \
+            -DENABLE_SSE2=1 \
+            -DENABLE_AVX=1 \
+            -DENABLE_AVX2=0 \
+            -DDISABLE_FORTRAN=1 \
+            ..
+          make -j$(nproc)
+          sudo make install
+
+      - name: Install lcms2
+        run: |
+          export PATH=/opt/local/libexec/gnubin:/opt/local/bin:/opt/local/sbin:$PATH
+          INSTDIR=/opt/local
+          wget https://downloads.sourceforge.net/project/lcms/lcms/2.17/lcms2-2.17.tar.gz
+          tar xzf lcms2-2.17.tar.gz
+          cd lcms2-2.17
+          CC=/opt/local/bin/clang-mp-21 \
+            CXX=/opt/local/bin/clang++-mp-21 \
+            ./configure --prefix=$INSTDIR 
+          make -j$(nproc)
+          sudo make install
 
       - name: Install gtk-osx-application-gtk3
         run: |
@@ -114,8 +152,8 @@ jobs:
           wget https://distfiles.macports.org/gtk-osx-application/gtk-mac-integration-3.0.2.tar.xz
           xzcat gtk-mac-integration-3.0.2.tar.xz | tar x
           cd gtk-mac-integration-3.0.2
-          CC=/opt/local/bin/clang-mp-17 \
-            CXX=/opt/local/bin/clang++-mp-17 \
+          CC=/opt/local/bin/clang-mp-21 \
+            CXX=/opt/local/bin/clang++-mp-21 \
             ./configure --prefix=$INSTDIR --with-gtk3
           make -j$(nproc)
           sudo make install
@@ -132,8 +170,8 @@ jobs:
           mkdir build
           cd build
           /opt/local/bin/cmake \
-            -DCMAKE_C_COMPILER=/opt/local/bin/clang-mp-17 \
-            -DCMAKE_CXX_COMPILER=/opt/local/bin/clang++-mp-17 \
+            -DCMAKE_C_COMPILER=/opt/local/bin/clang-mp-21 \
+            -DCMAKE_CXX_COMPILER=/opt/local/bin/clang++-mp-21 \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=$INSTDIR \
             -DENABLE_X3FTOOLS=1 \
@@ -149,8 +187,8 @@ jobs:
           mkdir build-CTL
           cd build-CTL
           /opt/local/bin/cmake \
-            -DCMAKE_C_COMPILER=/opt/local/bin/clang-mp-17 \
-            -DCMAKE_CXX_COMPILER=/opt/local/bin/clang++-mp-17 \
+            -DCMAKE_C_COMPILER=/opt/local/bin/clang-mp-21 \
+            -DCMAKE_CXX_COMPILER=/opt/local/bin/clang++-mp-21 \
             -DCMAKE_INSTALL_PREFIX=$INSTDIR \
             -DCMAKE_BUILD_TYPE=Release \
             ../CTL
@@ -161,7 +199,7 @@ jobs:
         run: |
           export PATH=/opt/local/libexec/gnubin:/opt/local/bin:/opt/local/sbin:$PATH
           INSTDIR=/opt/art-deps
-          OCIO_VERSION='2.4.0'
+          OCIO_VERSION='2.4.2'
           mkdir ocio
           cd ocio
           wget https://github.com/AcademySoftwareFoundation/OpenColorIO/archive/refs/tags/v${OCIO_VERSION}.tar.gz
@@ -169,8 +207,8 @@ jobs:
           mkdir build
           cd build
           /opt/local/bin/cmake \
-            -DCMAKE_C_COMPILER=/opt/local/bin/clang-mp-17 \
-            -DCMAKE_CXX_COMPILER=/opt/local/bin/clang++-mp-17 \
+            -DCMAKE_C_COMPILER=/opt/local/bin/clang-mp-21 \
+            -DCMAKE_CXX_COMPILER=/opt/local/bin/clang++-mp-21 \
             -DCMAKE_INSTALL_PREFIX=$INSTDIR \
             -DCMAKE_BUILD_TYPE=Release \
             -DOCIO_BUILD_PYTHON=OFF \
@@ -203,6 +241,17 @@ jobs:
           sudo cp -a $INSTDIR/include/gtk-3.0/gdk/quartz/gdkquartzwindow.h /opt/local/include/gtk-3.0/gdk/quartz
           sudo cp -a $INSTDIR/lib/libgdk-3.0.dylib /opt/local/lib/libgdk-3.0.dylib
 
+      - if: ${{ matrix.arch == 'arm64' }}
+        name: Install SIMDE
+        run: |
+          export PATH=/opt/local/libexec/gnubin:/opt/local/bin:/opt/local/sbin:$PATH
+          INSTDIR=/opt/art-deps
+          wget https://github.com/simd-everywhere/simde/archive/refs/tags/v0.8.2.tar.gz
+          tar xzf v0.8.2.tar.gz
+          cd simde-0.8.2
+          meson setup build -Dbuildtype=release -Dtests=false -Dprefix=$INSTDIR
+          sudo meson install -C build
+          
       - name: Configure build
         run: |
           export PATH=/opt/local/libexec/gnubin:/opt/local/bin:/opt/local/sbin:$PATH
@@ -215,8 +264,8 @@ jobs:
           fi
           export PKG_CONFIG_PATH=/opt/art-deps/lib/pkgconfig
           /opt/local/bin/cmake \
-            -DCMAKE_C_COMPILER=/opt/local/bin/clang-mp-17 \
-            -DCMAKE_CXX_COMPILER=/opt/local/bin/clang++-mp-17 \
+            -DCMAKE_C_COMPILER=/opt/local/bin/clang-mp-21 \
+            -DCMAKE_CXX_COMPILER=/opt/local/bin/clang++-mp-21 \
             -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DWITH_SAN="${WITH_SAN}" \
             -DENABLE_CTL=1 \
             -DENABLE_LIBRAW=1 \
@@ -261,7 +310,7 @@ jobs:
           cd build/${BUILD_TYPE}/ART.app
           python "${OUTDIR}/repo/tools/osx/bundle_ART.py" \
             -o "${OUTDIR}" -v -r /opt/art-deps/lib \
-            -r /opt/local/libexec/llvm-17/lib/clang/17/lib/darwin -e -I \
+            -r /opt/local/libexec/llvm-21/lib/clang/21/lib/darwin -e -I \
             ${DBG_FLAG} ${LAUNCHER_FLAG} \
             -d "${ART_NAME}_macOS-${OS_VERSION}_${{ matrix.arch }}${BUILD_SUFFIX}"
           cd "${OUTDIR}"
